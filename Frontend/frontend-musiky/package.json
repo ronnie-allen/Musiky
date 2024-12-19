@@ -10,10 +10,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "aceternity": "^1.0.1",
+    "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "react-router-dom": "^7.0.2"
+    "react-router-dom": "^7.0.2",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
