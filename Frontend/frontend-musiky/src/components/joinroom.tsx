@@ -1,92 +1,73 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import { api, ApiError } from '../lib/api';
 
 interface JoinRoomPopupProps {
   onClose: () => void;
 }
 
-const JoinRoomPopup: React.FC<JoinRoomPopupProps> = ({ onClose }) => {
-  const [roomCode, setRoomCode] = useState<string>('');
-  const [error, setError] = useState<string>('');
+export default function JoinRoomPopup({ onClose }: JoinRoomPopupProps) {
+  const [roomCode, setRoomCode] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
-  const handleJoin = () => {
-    if (roomCode.length === 6 && /^[0-9]+$/.test(roomCode)) {
-      navigate(`/room/${roomCode}`);
-    } else {
-      setError('Please enter a valid 6-digit room code.');
+  const joinRoom = async (event: FormEvent) => {
+    event.preventDefault();
+    const code = roomCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setError('Room codes are exactly six digits.');
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await api.getRoom(code);
+      navigate(`/room/${code}`);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 404) {
+        setError('No room with that code. Ask the host for a fresh invite.');
+      } else {
+        setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
+      }
+    } finally {
+      setBusy(false);
     }
   };
 
   return (
-    <div
-      className="d-flex justify-content-center align-items-center"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        zIndex: 1050,
-      }}
-    >
-      <div
-        className="card"
-        style={{
-          width: '28rem',
-          backgroundColor: '#2e2e4f',
-          color: '#ffffff',
-          borderRadius: '12px',
-          padding: '1rem',
-        }}
-      >
-        <div
-          className="d-flex justify-content-between align-items-center"
-          style={{
-            backgroundColor: '#8e44ad',
-            color: '#ffffff',
-            borderRadius: '8px',
-            padding: '0.5rem 1rem',
-          }}
-        >
-          <h5 style={{ margin: 0 }}>Join Room</h5>
-          <button
-            type="button"
-            className="btn-close btn-close-white"
-            aria-label="Close"
-            onClick={onClose}
-            style={{ position: 'relative', right: '-5px' }}
-          ></button>
-        </div>
-        <div className="card-body text-center mt-3">
-          <input
-            className="form-control mb-3"
-            type="text"
-            placeholder="Enter 6-digit Room Code"
-            value={roomCode}
-            onChange={(e) => {
-              setRoomCode(e.target.value);
-              setError('');
-            }}
-            style={{
-              backgroundColor: '#f1f1f1',
-              borderColor: '#f1f1f1',
-              color: '#333',
-            }}
-          />
-          {error && <p className="text-danger" style={{ color: '#e74c3c' }}>{error}</p>}
-          <button
-            className="btn btn-primary"
-            onClick={handleJoin}
-            style={{ backgroundColor: '#f39c12', borderColor: '#f39c12' }}
-          >
-            Join Room
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Join room">
+      <form className="modal-card" onSubmit={joinRoom}>
+        <div className="panel-head">
+          <span>Join a room</span>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
+            ✕
           </button>
         </div>
-      </div>
+        <div className="p-3">
+          <label className="form-label small opacity-75" htmlFor="room-code">
+            Six digit room code
+          </label>
+          <input
+            id="room-code"
+            className="form-control mb-2"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={6}
+            value={roomCode}
+            onChange={(event) => {
+              setRoomCode(event.target.value.replace(/\D/g, ''));
+              setError(null);
+            }}
+            placeholder="123456"
+          />
+          {error && <p className="small text-danger-soft">{error}</p>}
+          <button className="btn btn-accent w-100" type="submit" disabled={busy || !roomCode}>
+            {busy ? 'Checking…' : 'Join room'}
+          </button>
+        </div>
+      </form>
     </div>
   );
-};
-
-export default JoinRoomPopup;
+}

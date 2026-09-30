@@ -1,127 +1,97 @@
-import React, { useState } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import { api, ApiError } from '../lib/api';
 
 interface CreateRoomPopupProps {
   onClose: () => void;
 }
 
-const CreateRoomPopup: React.FC<CreateRoomPopupProps> = ({ onClose }) => {
-  const [roomCode, setRoomCode] = useState<string>('');
+export default function CreateRoomPopup({ onClose }: CreateRoomPopupProps) {
+  const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const navigate = useNavigate();
 
-  const generateRoomCode = () => {
-    const code = Math.floor(100000 + Math.random() * 900000).toString();
-    setRoomCode(code);
+  const shareableLink = roomCode ? `${window.location.origin}/room/${roomCode}` : '';
+
+  const createRoom = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await api.createRoom();
+      setRoomCode(response.room_code);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : 'Could not reach the server.');
+    } finally {
+      setBusy(false);
+    }
   };
 
-  const shareableLink = `${window.location.origin}/room/${roomCode}`;
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(shareableLink);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setError('Could not copy automatically. Copy the link manually.');
+    }
+  };
 
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(shareableLink);
-    alert('Room link copied to clipboard!');
+  const enterRoom = (event: FormEvent) => {
+    event.preventDefault();
+    if (roomCode) navigate(`/room/${roomCode}`);
   };
 
   return (
-    <div
-      className="d-flex justify-content-center align-items-center"
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        zIndex: 1050,
-      }}
-    >
-      <div
-        className="card"
-        style={{
-          width: '28rem',
-          backgroundColor: '#2e2e4f',
-          color: '#ffffff',
-          borderRadius: '12px',
-          padding: '1rem',
-        }}
-      >
-        <div
-          className="d-flex justify-content-between align-items-center"
-          style={{
-            backgroundColor: '#8e44ad',
-            color: '#ffffff',
-            borderRadius: '8px',
-            padding: '0.5rem 1rem',
-          }}
-        >
-          <h5 style={{ margin: 0 }}>Create Room</h5>
-          <button
-            type="button"
-            className="btn-close btn-close-white"
-            aria-label="Close"
-            onClick={onClose}
-            style={{ position: 'relative', right: '-5px' }}
-          ></button>
+    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Create room">
+      <div className="modal-card">
+        <div className="panel-head">
+          <span>Create a room</span>
+          <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
         </div>
-        <div className="card-body text-center mt-3">
-          {roomCode ? (
+
+        <div className="p-3">
+          {!roomCode ? (
             <>
-              <h4>Room Code: <strong>{roomCode}</strong></h4>
-              <p className="mt-3">Share this link with your friends:</p>
-              <input
-                className="form-control mb-3"
-                type="text"
-                value={shareableLink}
-                readOnly
-              />
-              <div className="d-flex flex-column gap-2">
-                <button
-                  className="btn btn-primary"
-                  style={{ backgroundColor: '#f39c12', borderColor: '#f39c12' }}
-                  onClick={copyToClipboard}
-                >
-                  Copy Link
-                </button>
-                <div className="d-flex justify-content-center gap-2">
-                  <a
-                    href={`https://api.whatsapp.com/send?text=Join my room: ${shareableLink}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-success"
-                  >
-                    WhatsApp
-                  </a>
-                  <a
-                    href={`https://www.facebook.com/sharer/sharer.php?u=${shareableLink}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-primary"
-                    style={{ backgroundColor: '#3b5998', borderColor: '#3b5998' }}
-                  >
-                    Facebook
-                  </a>
-                  <a
-                    href={`mailto:?subject=Join my room&body=Here is the room link: ${shareableLink}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="btn btn-secondary"
-                    style={{ backgroundColor: '#8e44ad', borderColor: '#8e44ad' }}
-                  >
-                    Email
-                  </a>
-                </div>
-              </div>
+              <p className="opacity-75 small">
+                A six digit code is generated for you. Share it so friends can listen with you.
+              </p>
+              {error && <p className="small text-danger-soft">{error}</p>}
+              <button className="btn btn-accent w-100" onClick={createRoom} disabled={busy}>
+                {busy ? 'Creating…' : 'Generate room code'}
+              </button>
             </>
           ) : (
-            <button
-              className="btn btn-primary"
-              style={{ backgroundColor: '#f39c12', borderColor: '#f39c12' }}
-              onClick={generateRoomCode}
-            >
-              Generate Room Code
-            </button>
+            <form onSubmit={enterRoom}>
+              <p className="text-center mb-1 opacity-75 small">Your room code</p>
+              <p className="room-code text-center mb-3" style={{ fontSize: '2rem' }}>
+                {roomCode}
+              </p>
+              <input className="form-control mb-2" readOnly value={shareableLink} onFocus={(e) => e.currentTarget.select()} />
+              <div className="d-flex gap-2 mb-3">
+                <button type="button" className="btn btn-ghost flex-grow-1" onClick={copyToClipboard}>
+                  {copied ? 'Copied!' : 'Copy link'}
+                </button>
+                <a
+                  className="btn btn-ghost"
+                  href={`https://wa.me/?text=${encodeURIComponent(`Join my Musiky room: ${shareableLink}`)}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                >
+                  WhatsApp
+                </a>
+              </div>
+              <button type="submit" className="btn btn-accent w-100">
+                Enter room
+              </button>
+            </form>
           )}
         </div>
       </div>
     </div>
   );
-};
-
-export default CreateRoomPopup;
+}
