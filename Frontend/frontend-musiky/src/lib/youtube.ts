@@ -2,15 +2,22 @@ const API_SRC = 'https://www.youtube.com/iframe_api';
 
 let apiPromise: Promise<typeof YT> | null = null;
 
+function loadedApi(): typeof YT | undefined {
+  const candidate = window.YT;
+  return candidate && typeof candidate.Player === 'function' ? candidate : undefined;
+}
+
 export function loadYouTubeApi(): Promise<typeof YT> {
-  if (window.YT?.Player) return Promise.resolve(window.YT);
+  const alreadyLoaded = loadedApi();
+  if (alreadyLoaded) return Promise.resolve(alreadyLoaded);
   if (apiPromise) return apiPromise;
 
   apiPromise = new Promise<typeof YT>((resolve, reject) => {
     const previous = window.onYouTubeIframeAPIReady;
     window.onYouTubeIframeAPIReady = () => {
       previous?.();
-      if (window.YT?.Player) resolve(window.YT);
+      const api = loadedApi();
+      if (api) resolve(api);
       else reject(new Error('The YouTube IFrame API loaded without a player API.'));
     };
 

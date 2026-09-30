@@ -7,6 +7,7 @@ export interface PlayerHandle {
   pause: () => void;
   seek: (seconds: number) => void;
   getTime: () => number;
+  getState: () => number;
   setVolume: (volume: number) => void;
   setMuted: (muted: boolean) => void;
 }
@@ -57,6 +58,7 @@ const YouTubePlayer = forwardRef<PlayerHandle, YouTubePlayerProps>(function YouT
       pause: () => playerRef.current?.pauseVideo(),
       seek: (seconds: number) => playerRef.current?.seekTo(Math.max(0, seconds), true),
       getTime: () => playerRef.current?.getCurrentTime() ?? 0,
+      getState: () => playerRef.current?.getPlayerState() ?? -1,
       setVolume: (volume: number) => playerRef.current?.setVolume(volume),
       setMuted: (muted: boolean) => {
         const player = playerRef.current;

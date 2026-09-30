@@ -216,7 +216,7 @@ export default function RoomPage() {
     const timer = window.setTimeout(() => {
       const player = playerRef.current;
       if (!player) return;
-      const state = player.getPlayerState();
+      const state = player.getState();
       const stalled = state === YT.PlayerState.PAUSED || state === YT.PlayerState.CUED || state === YT.PlayerState.UNSTARTED;
       setBlockedByAutoplay(stalled);
     }, 2000);

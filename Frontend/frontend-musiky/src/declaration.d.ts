@@ -19,7 +19,9 @@ declare namespace YT {
     };
   }
 
-  interface Player {
+  class Player {
+    constructor(element: HTMLElement | string, options?: PlayerOptions);
+
     playVideo(): void;
     pauseVideo(): void;
     seekTo(seconds: number, allowSeekAhead?: boolean): void;
@@ -46,8 +48,6 @@ declare namespace YT {
     BUFFERING: 3;
     CUED: 5;
   };
-
-  function Player(element: HTMLElement | string, options: PlayerOptions): Player;
 
   const PlayerVars: Record<string, string | number>;
 }
