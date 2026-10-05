@@ -9,6 +9,7 @@ from app.events import (
     broadcast_participants,
     broadcast_playback,
     broadcast_queue,
+    broadcast_room_state,
     emit_error,
     emit_room_state,
     system_message,
@@ -92,6 +93,7 @@ def handle_join(data):
     emit_room_state(room_code, request.sid)
     socketio.emit("participant_joined", {"sid": request.sid, "name": name}, to=room_code)
     broadcast_participants(room_code)
+    broadcast_room_state(room_code)
     system_message(room_code, f"{name} joined the room")
 
 
@@ -126,6 +128,8 @@ def _drop_from_room(sid):
                 system_message(room_code, f"{host_name} is now the host.")
     socketio.emit("participant_left", {"sid": sid, "name": name}, to=room_code)
     broadcast_participants(room_code)
+    # the roster and host ownership changed, so everyone re-reads their own state
+    broadcast_room_state(room_code)
     if name:
         system_message(room_code, f"{name} left the room")
 

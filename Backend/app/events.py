@@ -38,6 +38,21 @@ def broadcast_participants(room_code):
     socketio.emit("participants", payload, to=room_code)
 
 
+def broadcast_room_state(room_code):
+    """Re-send each participant their own room_state.
+
+    is_host is per-sid, so the state cannot be broadcast as one shared payload.
+    Roster and host ownership both change when somebody joins or leaves.
+    """
+    room = Room.find_room(room_code)
+    if not room:
+        return
+    for participant in room.get("participants", []):
+        state = room_state(room_code, participant.get("sid"))
+        if state:
+            socketio.emit("room_state", state, to=participant["sid"])
+
+
 def broadcast_queue(room_code):
     room = Room.find_room(room_code)
     if not room:
