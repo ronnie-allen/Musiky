@@ -223,6 +223,11 @@ export default function RoomPage() {
     return () => window.clearTimeout(timer);
   }, [playback.state, currentVideo]);
 
+  // once the player really is playing the gate has served its purpose
+  const handlePlayerState = useCallback((state: number) => {
+    if (state === YT.PlayerState.PLAYING) setBlockedByAutoplay(false);
+  }, []);
+
   const emit = useCallback((event: string, payload: Record<string, unknown> = {}) => {
     socketRef.current?.emit(event, { ...payload, room: roomCode, name });
   }, [roomCode, name]);
@@ -416,20 +421,25 @@ export default function RoomPage() {
 
       <main className="room-main">
         <section className="player-column">
-          <YouTubePlayer
-            ref={playerRef}
-            videoId={currentVideo?.video_id ?? null}
-            onEnded={handleEnded}
-            onError={() => showNotice('This video cannot be embedded by its owner.')}
-            onDurationChange={setPlayerDuration}
-          />
+          <div className="player-wrap">
+            <YouTubePlayer
+              ref={playerRef}
+              videoId={currentVideo?.video_id ?? null}
+              onEnded={handleEnded}
+              onError={() => showNotice('This video cannot be embedded by its owner.')}
+              onStateChange={handlePlayerState}
+              onDurationChange={setPlayerDuration}
+            />
 
-          {blockedByAutoplay && (
-            <button className="autoplay-gate" onClick={resumeAfterGesture}>
-              <span className="btn btn-accent">Tap to start playback</span>
-              <span className="small opacity-75">Your browser blocked autoplay with sound.</span>
-            </button>
-          )}
+            {blockedByAutoplay && (
+              <button className="autoplay-gate" onClick={resumeAfterGesture}>
+                <span className="btn btn-accent">Tap to start playback</span>
+                <span className="small opacity-75">
+                  Playback is paused until the room is started here.
+                </span>
+              </button>
+            )}
+          </div>
 
           {currentVideo && (
             <>
