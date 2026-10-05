@@ -143,12 +143,8 @@ export default function RoomPage() {
     });
 
     socket.on('participants', (list: Participant[]) => setParticipants(list));
-    socket.on('participant_joined', (p: Participant) =>
-      appendMessage({ name: p.name, text: 'joined the room', ts: Date.now(), system: true }),
-    );
-    socket.on('participant_left', (p: Participant) =>
-      appendMessage({ name: p.name || 'Someone', text: 'left the room', ts: Date.now(), system: true }),
-    );
+    // join/leave notices arrive as system chat messages from the server, so the
+    // participant events are only about keeping the roster current
     socket.on('now_playing', (payload: { video: Video | null }) => setCurrentVideo(payload.video));
     socket.on('queue_updated', (payload: { video_queue: QueueEntry[] }) =>
       setQueue(payload.video_queue ?? []),
