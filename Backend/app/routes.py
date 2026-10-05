@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify, request
 
-from app.models.room import Room, RoomExistsError
+from app.models.room import Room, RoomExistsError, normalize_video
 from app.utils.db import ping as db_ping
 from app.youtube_api import YouTubeError, is_configured, search_videos
 
@@ -53,7 +53,10 @@ def enqueue(room_code):
     if failure:
         return failure
     payload = request.get_json(silent=True) or {}
-    queue, added = Room.add_to_queue(room_code, payload, added_by=payload.get("added_by"))
+    video = normalize_video(payload.get("video") or payload)
+    if not video:
+        return error("A video with a video_id is required.", 400)
+    queue, added = Room.add_to_queue(room_code, video, added_by=payload.get("added_by") or payload.get("name"))
     if queue is None:
         return error("Could not update the queue.", 500)
     if not added:
