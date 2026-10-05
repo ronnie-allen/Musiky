@@ -183,6 +183,10 @@ def handle_play_video(data):
     playback = Room.set_current_video(room_code, video, autoplay=autoplay)
     broadcast_now_playing(room_code, video, source=_sanitize_name(data.get("name")))
     broadcast_playback(room_code, playback)
+    # playing a queued track takes it out of the queue so it is not replayed later
+    remaining = Room.remove_from_queue(room_code, video["video_id"])
+    if remaining is not None:
+        broadcast_queue(room_code)
 
 
 @socketio.on("advance")
