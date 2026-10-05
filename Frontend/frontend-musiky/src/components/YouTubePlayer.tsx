@@ -16,11 +16,12 @@ interface YouTubePlayerProps {
   videoId: string | null;
   onEnded?: () => void;
   onError?: (code: number) => void;
+  onStateChange?: (state: number) => void;
   onDurationChange?: (seconds: number) => void;
 }
 
 const YouTubePlayer = forwardRef<PlayerHandle, YouTubePlayerProps>(function YouTubePlayer(
-  { videoId, onEnded, onError, onDurationChange },
+  { videoId, onEnded, onError, onStateChange, onDurationChange },
   ref,
 ) {
   const hostRef = useRef<HTMLDivElement | null>(null);
@@ -28,13 +29,17 @@ const YouTubePlayer = forwardRef<PlayerHandle, YouTubePlayerProps>(function YouT
   const loadedVideoRef = useRef<string | null>(null);
   const videoIdRef = useRef<string | null>(videoId);
   videoIdRef.current = videoId;
-  const [failed, setFailed] = useState(false);
+  // the embed reports errors of its own before any track is loaded, so the failure
+  // is remembered per video instead of as a bare flag
+  const [failedVideo, setFailedVideo] = useState<string | null>(null);
 
   const endedRef = useRef(onEnded);
   const errorRef = useRef(onError);
+  const stateRef = useRef(onStateChange);
   const durationRef = useRef(onDurationChange);
   endedRef.current = onEnded;
   errorRef.current = onError;
+  stateRef.current = onStateChange;
   durationRef.current = onDurationChange;
 
   const cue = useCallback((next: string | null) => {
@@ -47,7 +52,7 @@ const YouTubePlayer = forwardRef<PlayerHandle, YouTubePlayerProps>(function YouT
     }
     if (loadedVideoRef.current === next) return;
     loadedVideoRef.current = next;
-    setFailed(false);
+    setFailedVideo(null);
     player.cueVideoById(next);
   }, []);
 
@@ -74,15 +79,22 @@ const YouTubePlayer = forwardRef<PlayerHandle, YouTubePlayerProps>(function YouT
     let cancelled = false;
     let created: YT.Player | null = null;
 
+    // The IFrame API replaces the element it is given with the player iframe and
+    // leaves the original node behind as an empty sibling. Mounting into a child
+    // node we own keeps the iframe inside .player-frame, where the layout styles
+    // and the overlay can reach it.
+    const mount = document.createElement('div');
+    mount.className = 'player-mount';
+    hostRef.current?.appendChild(mount);
+
     loadYouTubeApi()
       .then((YTApi) => {
-        if (cancelled || !hostRef.current) return;
-        created = new YTApi.Player(hostRef.current, {
+        if (cancelled) return;
+        created = new YTApi.Player(mount, {
           width: '100%',
           height: '100%',
           playerVars: {
             enablejsapi: 1,
-            origin: window.location.origin,
             rel: 0,
             modestbranding: 1,
             playsinline: 1,
@@ -93,10 +105,11 @@ const YouTubePlayer = forwardRef<PlayerHandle, YouTubePlayerProps>(function YouT
             onReady: (event) => durationRef.current?.(event.target.getDuration()),
             onStateChange: (event) => {
               if (event.data === YTApi.PlayerState.ENDED) endedRef.current?.();
+              stateRef.current?.(event.data);
               durationRef.current?.(event.target.getDuration());
             },
             onError: (event) => {
-              setFailed(true);
+              setFailedVideo(loadedVideoRef.current);
               errorRef.current?.(event.data);
             },
           },
@@ -105,12 +118,13 @@ const YouTubePlayer = forwardRef<PlayerHandle, YouTubePlayerProps>(function YouT
         // the room may already have a track loaded before the API finished loading
         cue(videoIdRef.current);
       })
-      .catch(() => setFailed(true));
+      .catch(() => setFailedVideo(videoIdRef.current));
 
     return () => {
       cancelled = true;
       playerRef.current = null;
       created?.destroy();
+      mount.remove();
     };
   }, [cue]);
 
@@ -118,12 +132,14 @@ const YouTubePlayer = forwardRef<PlayerHandle, YouTubePlayerProps>(function YouT
     cue(videoId);
   }, [videoId, cue]);
 
+  const unplayable = videoId !== null && failedVideo === videoId;
+
   return (
     <div className="player-shell">
       <div ref={hostRef} className="player-frame" />
-      {(failed || !videoId) && (
+      {(unplayable || !videoId) && (
         <div className="player-overlay">
-          {failed ? (
+          {unplayable ? (
             <>
               <p className="mb-1 fw-semibold">This video cannot be played here.</p>
               <p className="mb-0 small opacity-75">
