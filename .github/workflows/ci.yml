@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+      - name: Install dependencies
+        run: pip install -r Backend/requirements.txt -r Backend/requirements-dev.txt
+      - name: Run backend suite
+        run: |
+          cd Backend
+          PYTHONPATH=. MONGO_MOCK=1 python tests/test_api.py
+
+  frontend:
+    name: Frontend lint, typecheck and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: Frontend/frontend-musiky/package-lock.json
+      - name: Install dependencies
+        working-directory: Frontend/frontend-musiky
+        run: npm ci
+      - name: Lint
+        working-directory: Frontend/frontend-musiky
+        run: npm run lint
+      - name: Typecheck
+        working-directory: Frontend/frontend-musiky
+        run: npx tsc -b
+      - name: Build
+        working-directory: Frontend/frontend-musiky
+        run: npm run build
