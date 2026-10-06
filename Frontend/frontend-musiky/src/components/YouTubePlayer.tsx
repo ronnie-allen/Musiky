@@ -12,6 +12,32 @@ export interface PlayerHandle {
   setMuted: (muted: boolean) => void;
 }
 
+const canCall = (player: YT.Player | null, method: string): boolean => {
+  if (!player) return false;
+  return typeof (player as unknown as Record<string, unknown>)[method] === 'function';
+};
+
+/**
+ * A blocked or half-initialised embed can hand back a player object whose
+ * methods never materialise. Calling one throws inside a React effect and
+ * unmounts the whole room, so every player call goes through this guard.
+ */
+function callPlayer<T>(
+  player: YT.Player | null,
+  method: string,
+  ...args: Array<string | number | boolean>
+): T | undefined {
+  if (!canCall(player, method)) return undefined;
+  try {
+    const fn = (player as unknown as Record<string, (...callArgs: Array<string | number | boolean>) => T>)[
+      method
+    ];
+    return fn.apply(player, args);
+  } catch {
+    return undefined;
+  }
+}
+
 interface YouTubePlayerProps {
   videoId: string | null;
   onEnded?: () => void;
@@ -47,29 +73,44 @@ const YouTubePlayer = forwardRef<PlayerHandle, YouTubePlayerProps>(function YouT
     if (!player) return;
     if (!next) {
       loadedVideoRef.current = null;
-      player.stopVideo();
+      callPlayer(player, 'stopVideo');
       return;
     }
     if (loadedVideoRef.current === next) return;
     loadedVideoRef.current = next;
+    // a husk player (blocked embed, half-loaded API) has no cue method;
+    // surface the embed failure instead of throwing and unmounting the room
+    if (!canCall(player, 'cueVideoById')) {
+      setFailedVideo(next);
+      errorRef.current?.(-1);
+      return;
+    }
     setFailedVideo(null);
-    player.cueVideoById(next);
+    callPlayer(player, 'cueVideoById', next);
   }, []);
 
   useImperativeHandle(
     ref,
     () => ({
-      play: () => playerRef.current?.playVideo(),
-      pause: () => playerRef.current?.pauseVideo(),
-      seek: (seconds: number) => playerRef.current?.seekTo(Math.max(0, seconds), true),
-      getTime: () => playerRef.current?.getCurrentTime() ?? 0,
-      getState: () => playerRef.current?.getPlayerState() ?? -1,
-      setVolume: (volume: number) => playerRef.current?.setVolume(volume),
+      play: () => {
+        callPlayer(playerRef.current, 'playVideo');
+      },
+      pause: () => {
+        callPlayer(playerRef.current, 'pauseVideo');
+      },
+      seek: (seconds: number) => {
+        callPlayer(playerRef.current, 'seekTo', Math.max(0, seconds), true);
+      },
+      getTime: () => callPlayer<number>(playerRef.current, 'getCurrentTime') ?? 0,
+      getState: () => callPlayer<number>(playerRef.current, 'getPlayerState') ?? -1,
+      setVolume: (volume: number) => {
+        callPlayer(playerRef.current, 'setVolume', volume);
+      },
       setMuted: (muted: boolean) => {
         const player = playerRef.current;
         if (!player) return;
-        if (muted) player.mute();
-        else player.unMute();
+        if (muted) callPlayer(player, 'mute');
+        else callPlayer(player, 'unMute');
       },
     }),
     [],
@@ -102,11 +143,11 @@ const YouTubePlayer = forwardRef<PlayerHandle, YouTubePlayerProps>(function YouT
             disablekb: 1,
           },
           events: {
-            onReady: (event) => durationRef.current?.(event.target.getDuration()),
+            onReady: (event) => durationRef.current?.(callPlayer<number>(event.target, 'getDuration') ?? 0),
             onStateChange: (event) => {
               if (event.data === YTApi.PlayerState.ENDED) endedRef.current?.();
               stateRef.current?.(event.data);
-              durationRef.current?.(event.target.getDuration());
+              durationRef.current?.(callPlayer<number>(event.target, 'getDuration') ?? 0);
             },
             onError: (event) => {
               setFailedVideo(loadedVideoRef.current);
