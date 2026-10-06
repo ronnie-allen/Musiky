@@ -8,9 +8,11 @@
  * Then:  node e2e.room.test.cjs
  */
 const { chromium } = require('playwright-core');
+const fs = require('node:fs');
 
 const BASE = process.env.E2E_BASE || 'http://127.0.0.1:4173';
 const EXECUTABLE = process.env.CHROMIUM_PATH || '/home/sisaronniejeffrey/.cache/ms-playwright/chromium-1234/chrome-linux64/chrome';
+const SHOTS = process.env.E2E_SHOTS || '/tmp/musiky-verify';
 
 const failures = [];
 function check(label, ok, extra = '') {
@@ -22,6 +24,8 @@ function skip(label, why) {
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+fs.mkdirSync(SHOTS, { recursive: true });
 
 async function textOf(page, selector) {
   return (await page.locator(selector).first().textContent().catch(() => null))?.trim() ?? '';
@@ -280,7 +284,7 @@ async function canActuallyPlay(page) {
   check('deep link joins the same room', (await textOf(deep, '.room-header .room-code')) === roomCode);
   check('deep link inherits playback', /Despacito/.test(await textOf(deep, '.now-playing')), await textOf(deep, '.now-playing'));
   check('deep link is alone in the room', /1 listening/.test(await textOf(deep, '.room-header')));
-  await deep.screenshot({ path: '/tmp/musiky-verify/room.png' });
+  await deep.screenshot({ path: `${SHOTS}/room.png` });
   await deep.close();
 
   console.log('\n== Console cleanliness ==');
@@ -290,7 +294,7 @@ async function canActuallyPlay(page) {
   check('no unexpected host console errors', hostErrors.length === 0, hostErrors.slice(0, 3));
   check('no unexpected guest console errors', guestErrors.length === 0, guestErrors.slice(0, 3));
 
-  await host.screenshot({ path: '/tmp/musiky-verify/host.png' });
+  await host.screenshot({ path: `${SHOTS}/host.png` });
   await browser.close();
 
   console.log('');
