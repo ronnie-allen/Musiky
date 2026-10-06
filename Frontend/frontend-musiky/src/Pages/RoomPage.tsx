@@ -335,9 +335,9 @@ export default function RoomPage() {
 
   if (!roomCode) {
     return (
-      <div className="page-shell">
-        <div className="panel text-center">
-          <h1 className="h5 mb-3">No room selected</h1>
+      <div className="page-shell page-shell-center">
+        <div className="panel notice-slab text-center">
+          <h1 className="mb-3">No room selected</h1>
           <button className="btn btn-accent" onClick={() => navigate('/')}>
             Back to home
           </button>
@@ -348,9 +348,9 @@ export default function RoomPage() {
 
   if (fatalError) {
     return (
-      <div className="page-shell">
-        <div className="panel text-center">
-          <h1 className="h5 mb-2">Room unavailable</h1>
+      <div className="page-shell page-shell-center">
+        <div className="panel notice-slab text-center">
+          <h1 className="mb-2">Room unavailable</h1>
           <p className="opacity-75 mb-3">{fatalError}</p>
           <button className="btn btn-accent" onClick={() => navigate('/')}>
             Back to home
@@ -362,10 +362,11 @@ export default function RoomPage() {
 
   if (!name) {
     return (
-      <div className="page-shell">
-        <form className="panel" onSubmit={submitName}>
-          <h1 className="h4 mb-1">Join room {roomCode}</h1>
-          <p className="opacity-75 mb-3">Pick a display name so friends recognise you.</p>
+      <div className="page-shell page-shell-center">
+        <form className="panel name-ticket" onSubmit={submitName}>
+          <span className="ticket-tab mono">Admit one &middot; room {roomCode}</span>
+          <h1 className="mb-2">Sign the guest book</h1>
+          <p className="opacity-75 mb-3">Pick a name so the rest of the room knows who walked in.</p>
           <input
             className="form-control mb-3"
             value={nameDraft}
@@ -389,27 +390,38 @@ export default function RoomPage() {
   return (
     <div className="page-shell room-layout">
       <header className="room-header">
-        <div className="d-flex align-items-center gap-2 flex-wrap">
+        <div className="room-header-bar">
           <span className="brand">Musiky</span>
-          <span className="room-code" title="Share this code with friends">
-            {roomCode}
-          </span>
-          <button className="btn btn-ghost btn-sm" onClick={copyLink}>
-            Copy invite link
-          </button>
-          {!isHost && <span className="badge-role">Listener</span>}
-          {isHost && <span className="badge-role badge-role-host">Host</span>}
+          <span className="mono">Shared listening room &middot; master copy</span>
         </div>
-        <div className="d-flex align-items-center gap-2">
-          <span className={`status-dot ${connected ? 'is-online' : 'is-offline'}`}>
-            {connected ? 'Live' : 'Reconnecting…'}
-          </span>
-          <span className="opacity-75 small">
-            {participants.length} listening · {name}
-          </span>
-          <button className="btn btn-ghost btn-sm" onClick={leaveRoom}>
-            Leave
-          </button>
+        <div className="room-header-grid">
+          <div className="room-slab">
+            <span className="slab-label">Room code</span>
+            <span className="room-code" title="Share this code with friends">
+              {roomCode}
+            </span>
+          </div>
+          <div className="room-slab">
+            <span className="slab-label">Desk</span>
+            {!isHost && <span className="badge-role">Listener</span>}
+            {isHost && <span className="badge-role badge-role-host">Host</span>}
+          </div>
+          <div className="room-slab">
+            <span className={`status-dot ${connected ? 'is-online' : 'is-offline'}`}>
+              {connected ? 'Live' : 'Reconnecting…'}
+            </span>
+            <span className="small room-count">
+              {participants.length} listening &middot; {name}
+            </span>
+          </div>
+          <div className="room-actions">
+            <button className="btn btn-ghost btn-sm" onClick={copyLink}>
+              Copy invite link
+            </button>
+            <button className="btn btn-ghost btn-sm" onClick={leaveRoom}>
+              Leave
+            </button>
+          </div>
         </div>
       </header>
 
@@ -417,6 +429,13 @@ export default function RoomPage() {
 
       <main className="room-main">
         <section className="player-column">
+          <div className="stage-head">
+            <span className="stage-title">On air</span>
+            <span className="stage-meta">
+              {isHost ? 'Host desk' : 'Listener desk'} &middot; {participants.length} in the room
+            </span>
+          </div>
+
           <div className="player-wrap">
             <YouTubePlayer
               ref={playerRef}
@@ -428,25 +447,27 @@ export default function RoomPage() {
             />
 
             {blockedByAutoplay && (
-              <button className="autoplay-gate" onClick={resumeAfterGesture}>
-                <span className="btn btn-accent">Tap to start playback</span>
-                <span className="small opacity-75">
-                  Playback is paused until the room is started here.
+              <div className="autoplay-gate">
+                <button className="btn btn-accent" onClick={resumeAfterGesture}>
+                  Tap to start playback
+                </button>
+                <span className="small">
+                  Your browser will not start the room until you press it here.
                 </span>
-              </button>
+              </div>
             )}
           </div>
 
           {currentVideo && (
             <>
               <div className="now-playing">
-                <div className="flex-grow-1">
-                  <div className="small opacity-75">Now playing</div>
+                <div className="row-body">
+                  <span className="slab-label">Now playing</span>
                   <div className="fw-semibold text-truncate">{currentVideo.title}</div>
                   <div className="small opacity-75">{currentVideo.channel}</div>
                 </div>
                 {isHost && (
-                  <button className="btn btn-accent btn-sm" onClick={() => emit('advance', { autoplay: true })}>
+                  <button className="btn btn-ghost btn-sm" onClick={() => emit('advance', { autoplay: true })}>
                     Next in queue
                   </button>
                 )}
@@ -454,15 +475,17 @@ export default function RoomPage() {
 
               <div className="controls">
                 <button
-                  className="btn btn-accent"
+                  className="btn btn-accent btn-play"
                   onClick={togglePlayback}
                   aria-label={playback.state === 'playing' ? 'Pause for everyone' : 'Play for everyone'}
                 >
                   {playback.state === 'playing' ? 'Pause' : 'Play'}
                 </button>
-                <span className="mono small">{formatDuration(position)}</span>
+                <span className="deck-pos">
+                  <span className="deck-clock mono">{formatDuration(position)}</span>
+                </span>
                 <input
-                  className="flex-grow-1"
+                  className="deck-seek"
                   type="range"
                   min={0}
                   max={scrubMax}
@@ -496,11 +519,11 @@ export default function RoomPage() {
                   }}
                   aria-label="Seek"
                 />
-                <span className="mono small">{formatDuration(duration)}</span>
-                <button className="btn btn-ghost btn-sm" onClick={commitMute}>
-                  {playback.muted ? 'Unmute' : 'Mute'}
-                </button>
+                <span className="deck-dur">
+                  <span className="deck-clock mono">{formatDuration(duration)}</span>
+                </span>
                 <input
+                  className="deck-vol"
                   type="range"
                   min={0}
                   max={100}
@@ -509,12 +532,19 @@ export default function RoomPage() {
                   onChange={(event) => commitVolume(Number(event.target.value))}
                   aria-label="Volume"
                 />
+                <button className="btn btn-ghost btn-sm deck-mute" onClick={commitMute}>
+                  {playback.muted ? 'Unmute' : 'Mute'}
+                </button>
               </div>
             </>
           )}
 
           <form className="search-bar" onSubmit={handleSearch}>
+            <label className="visually-hidden" htmlFor="track-search">
+              Search YouTube for the next track
+            </label>
             <input
+              id="track-search"
               className="form-control"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -524,14 +554,15 @@ export default function RoomPage() {
               {searching ? 'Searching…' : 'Search'}
             </button>
           </form>
-          {searchError && <p className="small text-danger-soft mb-2">{searchError}</p>}
+          {searchError && <p className="small text-danger-soft mb-0">{searchError}</p>}
 
           {showSearch && results.length > 0 && (
             <ul className="result-list">
-              {results.map((item) => (
+              {results.map((item, index) => (
                 <li key={item.video_id} className="result-row">
+                  <span className="row-index">{(index + 1).toString().padStart(2, '0')}</span>
                   <img src={item.thumbnail} alt="" className="result-thumb" loading="lazy" />
-                  <div className="flex-grow-1">
+                  <div className="row-body">
                     <div className="small fw-semibold">{item.title}</div>
                     <div className="small opacity-75">
                       {item.channel} · {formatDuration(item.duration)}
@@ -551,8 +582,8 @@ export default function RoomPage() {
           )}
 
           {!isHost && (
-            <p className="small opacity-75 mt-2">
-              The host controls what plays. You can queue requests and control playback.
+            <p className="host-note mb-0">
+              The host works the desk. Queue requests and control playback all you like.
             </p>
           )}
         </section>
@@ -560,7 +591,7 @@ export default function RoomPage() {
         <aside className="side-column">
           <div className="panel p-0 overflow-hidden">
             <div className="panel-head">
-              <span>Queue ({queue.length})</span>
+              <span>Setlist ({queue.length})</span>
               {isHost && queue.length > 0 && (
                 <button className="btn btn-ghost btn-sm" onClick={() => emit('queue_clear')}>
                   Clear
@@ -575,7 +606,7 @@ export default function RoomPage() {
                   <li key={entry.video_id} className="queue-row">
                     <span className="queue-index">{index + 1}</span>
                     <img src={entry.thumbnail} alt="" className="result-thumb" loading="lazy" />
-                    <div className="flex-grow-1">
+                    <div className="row-body">
                       <div className="small fw-semibold text-truncate">{entry.title}</div>
                       <div className="small opacity-75 text-truncate">
                         {entry.added_by ? `added by ${entry.added_by}` : entry.channel}
@@ -583,7 +614,10 @@ export default function RoomPage() {
                     </div>
                     {isHost && (
                       <>
-                        <button className="btn btn-ghost btn-sm" onClick={() => emit('queue_remove', { video_id: entry.video_id })}>
+                        <button
+                          className="btn btn-ghost btn-sm"
+                          onClick={() => emit('queue_remove', { video_id: entry.video_id })}
+                        >
                           Remove
                         </button>
                         <button className="btn btn-accent btn-sm" onClick={() => playNow(entry)}>
@@ -599,11 +633,11 @@ export default function RoomPage() {
 
           <div className="panel p-0 overflow-hidden d-flex flex-column chat-panel">
             <div className="panel-head">
-              <span>Chat</span>
-              <span className="small opacity-75">{messages.length}</span>
+              <span>Crowd ledger</span>
+              <span className="mono">{messages.length}</span>
             </div>
             <div className="chat-log">
-              {messages.length === 0 && <p className="small opacity-75 mb-0">Say hello 👋</p>}
+              {messages.length === 0 && <p className="small opacity-75 mb-0">Empty. Say something.</p>}
               {messages.map((message, index) => (
                 <div key={`${message.ts}-${index}`} className={`chat-msg ${message.system ? 'is-system' : ''}`}>
                   {!message.system && <span className="chat-author">{message.name}</span>}
@@ -635,7 +669,7 @@ export default function RoomPage() {
 
           <div className="panel p-0 overflow-hidden">
             <div className="panel-head">
-              <span>Listeners ({participants.length})</span>
+              <span>Attendance ({participants.length})</span>
             </div>
             <ul className="participant-list">
               {participants.map((participant) => (
