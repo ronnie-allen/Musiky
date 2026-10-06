@@ -1,7 +1,16 @@
 {
   "name": "frontend-musiky",
+  "version": "0.1.0",
+  "description": "Musiky web client — shared YouTube listening rooms (React + TypeScript + Vite)",
+  "license": "MIT",
   "private": true,
-  "version": "0.0.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ronnie-allen/Musiky.git",
+    "directory": "Frontend/frontend-musiky"
+  },
+  "homepage": "https://github.com/ronnie-allen/Musiky",
+  "bugs": "https://github.com/ronnie-allen/Musiky/issues",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,8 +19,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "aceternity": "^1.0.1",
-    "axios": "^1.7.9",
     "bootstrap": "^5.3.3",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
