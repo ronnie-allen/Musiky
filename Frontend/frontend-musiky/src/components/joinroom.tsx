@@ -40,18 +40,19 @@ export default function JoinRoomPopup({ onClose }: JoinRoomPopupProps) {
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Join room">
       <form className="modal-card" onSubmit={joinRoom}>
         <div className="panel-head">
-          <span>Join a room</span>
+          <span>Counter B / redeem a code</span>
           <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
-            ✕
+            Close
           </button>
         </div>
-        <div className="p-3">
-          <label className="form-label small opacity-75" htmlFor="room-code">
-            Six digit room code
+        <div className="modal-sheet">
+          <span className="ticket-tab mono">Ticket 01 / six digits, no letters</span>
+          <label className="form-label" htmlFor="room-code">
+            Room code
           </label>
           <input
             id="room-code"
-            className="form-control mb-2"
+            className="form-control room-code-input mb-2"
             inputMode="numeric"
             autoComplete="off"
             maxLength={6}
@@ -62,6 +63,7 @@ export default function JoinRoomPopup({ onClose }: JoinRoomPopupProps) {
             }}
             placeholder="123456"
           />
+          <hr className="perforation" />
           {error && <p className="small text-danger-soft">{error}</p>}
           <button className="btn btn-accent w-100" type="submit" disabled={busy || !roomCode}>
             {busy ? 'Checking…' : 'Join room'}

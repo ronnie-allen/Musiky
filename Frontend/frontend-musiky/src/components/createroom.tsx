@@ -48,17 +48,19 @@ export default function CreateRoomPopup({ onClose }: CreateRoomPopupProps) {
     <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="Create room">
       <div className="modal-card">
         <div className="panel-head">
-          <span>Create a room</span>
+          <span>Counter A / open a room</span>
           <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
-            ✕
+            Close
           </button>
         </div>
 
-        <div className="p-3">
+        <div className="modal-sheet">
           {!roomCode ? (
             <>
-              <p className="opacity-75 small">
-                A six digit code is generated for you. Share it so friends can listen with you.
+              <span className="ticket-tab mono">Ticket 01 / press the plate</span>
+              <p className="modal-lede">
+                We print a six-digit room code. Read it out, or send the stub link, and whoever joins
+                hears the same second of the same record.
               </p>
               {error && <p className="small text-danger-soft">{error}</p>}
               <button className="btn btn-accent w-100" onClick={createRoom} disabled={busy}>
@@ -67,12 +69,17 @@ export default function CreateRoomPopup({ onClose }: CreateRoomPopupProps) {
             </>
           ) : (
             <form onSubmit={enterRoom}>
-              <p className="text-center mb-1 opacity-75 small">Your room code</p>
-              <p className="room-code text-center mb-3" style={{ fontSize: '2rem' }}>
-                {roomCode}
-              </p>
-              <input className="form-control mb-2" readOnly value={shareableLink} onFocus={(e) => e.currentTarget.select()} />
-              <div className="d-flex gap-2 mb-3">
+              <span className="ticket-tab mono">Ticket 02 / keep this stub</span>
+              <p className="modal-lede text-center">Room code</p>
+              <p className="room-code room-code-xl mb-3">{roomCode}</p>
+              <hr className="perforation" />
+              <input
+                className="form-control invite-stub mb-3"
+                readOnly
+                value={shareableLink}
+                onFocus={(e) => e.currentTarget.select()}
+              />
+              <div className="d-flex gap-2 mb-3 flex-wrap">
                 <button type="button" className="btn btn-ghost flex-grow-1" onClick={copyToClipboard}>
                   {copied ? 'Copied!' : 'Copy link'}
                 </button>
